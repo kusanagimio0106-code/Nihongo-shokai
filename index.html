@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>日本語 cùng Bum thúi — Tiếng Nhật sơ cấp</title>
+<title>Nihongo cùng bé — Tiếng Nhật sơ cấp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -100,6 +100,26 @@ section[hidden]{display:none}
 .editor .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .saveinfo{font-size:13px;color:var(--ok);font-weight:600}
 
+/* ---------- trình sửa từng ô ---------- */
+.emode{display:inline-flex;background:#F1F6F4;border:1px solid var(--line);border-radius:999px;padding:3px;margin-bottom:14px}
+.emode button{border:0;background:transparent;padding:6px 13px;border-radius:999px;font-size:13px;font-weight:600;color:var(--soft)}
+.emode button[aria-pressed="true"]{background:#fff;color:var(--indigo);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.etopic{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:#FBFDFC}
+.etopic .ehead{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+.etopic .ehead input{font-family:var(--jp);font-weight:700;font-size:15.5px;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 7px;flex:1;min-width:0;color:var(--ink)}
+.etopic .ehead input:hover,.etopic .ehead input:focus{border-color:var(--line);background:#fff}
+.erow{display:grid;grid-template-columns:1.1fr 1fr 1.3fr auto;gap:6px;margin-bottom:6px}
+.erow input{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13.5px;width:100%;background:#fff;color:var(--ink)}
+.erow input.jp{font-family:var(--jp)}
+.erow .del{border:0;background:#FCEDEA;color:var(--no);border-radius:8px;width:30px;font-size:15px;font-weight:700}
+.eaddrow{border:1px dashed var(--line);background:transparent;color:var(--soft);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;width:100%;margin-top:2px}
+.eaddtopic{border:1.5px dashed var(--indigo);background:#fff;color:var(--indigo);border-radius:12px;padding:10px;font-size:13.5px;font-weight:700;width:100%}
+.edeltopic{border:0;background:transparent;color:var(--no);font-size:13px;font-weight:600;padding:5px 6px;white-space:nowrap}
+.ecodebox{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px;background:#0F2622}
+.ecodebox textarea{width:100%;min-height:220px;background:transparent;border:0;color:#E7F3EE;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.7;resize:vertical}
+.ecodebox textarea:focus{outline:none}
+.erowhdr{display:grid;grid-template-columns:1.1fr 1fr 1.3fr auto;gap:6px;font-size:11px;color:var(--soft);font-weight:700;padding:0 9px;margin-bottom:4px}
+
 /* ---------- bài tập ---------- */
 .quizwrap{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:8px}
 .quizhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
@@ -175,7 +195,7 @@ footer a{color:var(--soft)}
     <div class="topicbar" id="vocabTopics"></div>
     <div id="vocabList"></div>
     <div id="vocabQuiz" hidden></div>
-    <details class="editor" id="vocabEditor"></details>
+    <details class="editor" id="vocabEditor" open></details>
   </section>
 
   <!-- ========== PHẦN 3 ========== -->
@@ -187,7 +207,7 @@ footer a{color:var(--soft)}
     <div class="topicbar" id="sentTopics"></div>
     <div id="sentList"></div>
     <div id="sentQuiz" hidden></div>
-    <details class="editor" id="sentEditor"></details>
+    <details class="editor" id="sentEditor" open></details>
   </section>
 </main>
 
@@ -777,37 +797,152 @@ function makeSection(cfg){
 
   /* --- khung sửa nội dung (chỉ hiện ở chế độ của cô) --- */
   if(!EDIT_MODE){ cfg.editorEl.remove(); refresh(); return; }
-  cfg.editorEl.innerHTML=`<summary>Sửa nội dung ${cfg.label}</summary>
+  setupEditor(cfg, refresh, currentText);
+  refresh();
+}
+
+function serializeTopics(topics){
+  return topics.map(t=>'# '+t.name+'\n'+t.items.map(it=>[it.jp,it.rom,it.vi].join(' | ')).join('\n')).join('\n\n');
+}
+
+function setupEditor(cfg, refreshView, currentText){
+  let mode='form';          // 'form' | 'code'
+  let data=parseData(currentText());
+  if(!data.length) data=[{name:'Chủ đề mới',items:[{jp:'',rom:'',vi:''}]}];
+
+  cfg.editorEl.innerHTML=`<summary>Sửa nội dung ${cfg.label} (chế độ của cô)</summary>
     <div class="body">
-      <p class="hint">Mỗi dòng một mục, viết theo thứ tự <code>tiếng Nhật | romaji | nghĩa tiếng Việt</code>, ngăn cách bằng dấu gạch đứng.
-      Dòng bắt đầu bằng <code>#</code> là tên chủ đề mới. Bấm <b>Lưu</b> là danh sách và bài tập cập nhật ngay trên máy này.</p>
-      <textarea spellcheck="false"></textarea>
+      <p class="hint">Sửa từng ô bên dưới, hoặc bấm <b>Xuất mã cho GitHub</b> khi xong. Nút <b>Lưu tạm trên máy này</b> chỉ để xem thử ngay trên máy đang mở, không ảnh hưởng file gốc trên GitHub — muốn mọi máy (kể cả máy bé) thấy bản mới thì phải dán mã vào GitHub và Commit.</p>
+      <div class="emode">
+        <button data-m="form" aria-pressed="true">Sửa từng ô</button>
+        <button data-m="code" aria-pressed="false">Sửa dạng văn bản</button>
+      </div>
+      <div id="eForm-${cfg.key}"></div>
+      <textarea id="eRaw-${cfg.key}" spellcheck="false" hidden></textarea>
       <div class="acts">
-        <button class="btn small" data-a="save">Lưu</button>
+        <button class="btn small" data-a="local">Lưu tạm trên máy này</button>
+        <button class="btn gold small" data-a="export">Xuất mã cho GitHub</button>
         <button class="btn ghost small" data-a="reset">Khôi phục nội dung gốc</button>
         <button class="btn ghost small" data-a="dl">Tải về file .txt</button>
         <span class="saveinfo" data-info></span>
       </div>
+      <div class="ecodebox" id="eCodeBox-${cfg.key}" hidden>
+        <p class="hint" style="background:transparent;color:#BFE0D2;padding:0 0 8px">
+          Chép khối bên dưới, dán đè vào phần nằm giữa hai dấu <code style="background:#0002;color:#fff">\`</code> ngay sau
+          <code style="background:#0002;color:#fff">const ${cfg.key==='jp_vocab'?'VOCAB_DEFAULT':'SENT_DEFAULT'} = \`</code> trong <code style="background:#0002;color:#fff">index.html</code> trên GitHub, rồi Commit.
+        </p>
+        <textarea id="eCodeOut-${cfg.key}" readonly spellcheck="false"></textarea>
+        <div class="acts"><button class="btn small" id="eCopyBtn-${cfg.key}">Sao chép</button><span class="saveinfo" id="eCopyInfo-${cfg.key}"></span></div>
+      </div>
     </div>`;
-  const ta=cfg.editorEl.querySelector('textarea');
+
+  const formEl=cfg.editorEl.querySelector('#eForm-'+cfg.key);
+  const rawEl=cfg.editorEl.querySelector('#eRaw-'+cfg.key);
   const info=cfg.editorEl.querySelector('[data-info]');
-  ta.value=currentText().trim();
-  cfg.editorEl.querySelector('[data-a="save"]').onclick=()=>{
-    store(cfg.key, ta.value); refresh();
-    const n=parseData(ta.value).reduce((s,t)=>s+t.items.length,0);
-    info.textContent=`Đã lưu · ${n} mục`;
-    setTimeout(()=>info.textContent='',3000);
+  const codeBox=cfg.editorEl.querySelector('#eCodeBox-'+cfg.key);
+  const codeOut=cfg.editorEl.querySelector('#eCodeOut-'+cfg.key);
+
+  function syncRawFromData(){ rawEl.value=serializeTopics(data); }
+  function syncDataFromRaw(){ data=parseData(rawEl.value); if(!data.length) data=[{name:'Chủ đề mới',items:[{jp:'',rom:'',vi:''}]}]; }
+
+  function renderForm(){
+    formEl.innerHTML=data.map((t,ti)=>`
+      <div class="etopic" data-ti="${ti}">
+        <div class="ehead">
+          <input class="tname" value="${t.name.replace(/"/g,'&quot;')}" aria-label="Tên chủ đề">
+          <button class="edeltopic" data-del-topic="${ti}">Xoá chủ đề</button>
+        </div>
+        <div class="erowhdr"><span>Tiếng Nhật</span><span>Romaji</span><span>Nghĩa tiếng Việt</span><span></span></div>
+        ${t.items.map((it,ii)=>`
+          <div class="erow" data-ti="${ti}" data-ii="${ii}">
+            <input class="jp" data-f="jp" value="${(it.jp||'').replace(/"/g,'&quot;')}" placeholder="ねこ">
+            <input data-f="rom" value="${(it.rom||'').replace(/"/g,'&quot;')}" placeholder="neko">
+            <input data-f="vi" value="${(it.vi||'').replace(/"/g,'&quot;')}" placeholder="con mèo">
+            <button class="del" data-del-row title="Xoá dòng">×</button>
+          </div>`).join('')}
+        <button class="eaddrow" data-addrow="${ti}">+ Thêm mục vào chủ đề này</button>
+      </div>`).join('') + `<button class="eaddtopic" id="eAddTopic">+ Thêm chủ đề mới</button>`;
+
+    formEl.querySelectorAll('.tname').forEach(inp=>{
+      inp.oninput=()=>{ data[+inp.closest('.etopic').dataset.ti].name=inp.value; };
+    });
+    formEl.querySelectorAll('.erow input').forEach(inp=>{
+      inp.oninput=()=>{
+        const row=inp.closest('.erow');
+        data[+row.dataset.ti].items[+row.dataset.ii][inp.dataset.f]=inp.value;
+      };
+    });
+    formEl.querySelectorAll('[data-del-row]').forEach(btn=>{
+      btn.onclick=()=>{
+        const row=btn.closest('.erow');
+        data[+row.dataset.ti].items.splice(+row.dataset.ii,1);
+        renderForm();
+      };
+    });
+    formEl.querySelectorAll('[data-addrow]').forEach(btn=>{
+      btn.onclick=()=>{ data[+btn.dataset.addrow].items.push({jp:'',rom:'',vi:''}); renderForm();
+        const boxes=formEl.querySelectorAll(`.etopic[data-ti="${btn.dataset.addrow}"] .erow input.jp`);
+        boxes[boxes.length-1]?.focus(); };
+    });
+    formEl.querySelectorAll('[data-del-topic]').forEach(btn=>{
+      btn.onclick=()=>{
+        if(data.length<=1){ alert('Cần giữ lại ít nhất một chủ đề.'); return; }
+        if(!confirm('Xoá cả chủ đề này?')) return;
+        data.splice(+btn.dataset.delTopic,1); renderForm();
+      };
+    });
+    const addTopicBtn=formEl.querySelector('#eAddTopic');
+    if(addTopicBtn) addTopicBtn.onclick=()=>{
+      data.push({name:'Chủ đề mới',items:[{jp:'',rom:'',vi:''}]}); renderForm();
+      formEl.querySelector('.etopic:last-child .tname')?.focus();
+    };
+  }
+
+  cfg.editorEl.querySelector('.emode').onclick=e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.m===mode) return;
+    if(mode==='form' && b.dataset.m==='code'){ syncRawFromData(); rawEl.hidden=false; formEl.hidden=true; }
+    else if(mode==='code' && b.dataset.m==='form'){ syncDataFromRaw(); renderForm(); formEl.hidden=false; rawEl.hidden=true; }
+    mode=b.dataset.m;
+    cfg.editorEl.querySelectorAll('.emode button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+  };
+
+  function collectText(){ return mode==='code' ? rawEl.value : serializeTopics(data); }
+
+  cfg.editorEl.querySelector('[data-a="local"]').onclick=()=>{
+    const text=collectText();
+    store(cfg.key, text); refreshView();
+    const n=parseData(text).reduce((s,t)=>s+t.items.length,0);
+    info.textContent=`Đã lưu tạm trên máy này · ${n} mục`;
+    setTimeout(()=>info.textContent='',3500);
+  };
+  cfg.editorEl.querySelector('[data-a="export"]').onclick=()=>{
+    codeOut.value=collectText().trim();
+    codeBox.hidden=false;
+    codeBox.scrollIntoView({behavior:'smooth',block:'nearest'});
+  };
+  cfg.editorEl.querySelector('#eCopyBtn-'+cfg.key).onclick=async()=>{
+    const okInfo=cfg.editorEl.querySelector('#eCopyInfo-'+cfg.key);
+    try{ await navigator.clipboard.writeText(codeOut.value); }
+    catch(e){ codeOut.select(); document.execCommand('copy'); }
+    okInfo.textContent='Đã sao chép — giờ dán vào GitHub.';
+    setTimeout(()=>okInfo.textContent='',3500);
   };
   cfg.editorEl.querySelector('[data-a="reset"]').onclick=()=>{
-    store(cfg.key,null); ta.value=cfg.defaultText.trim(); refresh();
-    info.textContent='Đã quay về nội dung gốc'; setTimeout(()=>info.textContent='',3000);
+    store(cfg.key,null);
+    data=parseData(cfg.defaultText);
+    mode='form'; formEl.hidden=false; rawEl.hidden=true;
+    cfg.editorEl.querySelectorAll('.emode button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.m==='form'));
+    renderForm(); refreshView();
+    info.textContent='Đã quay về nội dung gốc trong file'; setTimeout(()=>info.textContent='',3500);
   };
   cfg.editorEl.querySelector('[data-a="dl"]').onclick=()=>{
-    const blob=new Blob([ta.value],{type:'text/plain;charset=utf-8'});
+    const blob=new Blob([collectText()],{type:'text/plain;charset=utf-8'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=cfg.key+'.txt';a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   };
-  refresh();
+
+  renderForm();
 }
 
 makeSection({key:'jp_vocab', label:'từ vựng', quizTitle:'Bài tập từ vựng', defaultText:VOCAB_DEFAULT,
