@@ -20,17 +20,24 @@ Mở địa chỉ đó trên điện thoại hay máy tính bảng là dùng đ�
 
 Có hai cách, tuỳ lúc:
 
-Khung sửa nội dung **được khoá**, bé vào học bình thường sẽ không nhìn thấy.
-
-**Cách nhanh (sửa tạm trên máy đang dùng).** Thêm `?edit=1` vào cuối địa chỉ trang, ví dụ:
+Khung sửa nội dung **được khoá**, bé vào học bình thường sẽ không nhìn thấy. Chị mở bằng cách thêm `?edit=1` vào cuối địa chỉ trang, ví dụ:
 
 ```
 https://<tên-tài-khoản>.github.io/<tên-repo>/?edit=1
 ```
 
-Trang sẽ hỏi mã khoá — mặc định là `1234`. Nhập đúng thì cuối phần Từ vựng và Mẫu câu hiện khung **Sửa nội dung**, gõ vào ô rồi bấm **Lưu**. Nội dung lưu trong trình duyệt của máy đó, không ảnh hưởng máy của bé. Nút **Tải về file .txt** giúp giữ lại bản đã sửa.
+Trang sẽ hỏi mã khoá — mặc định là `1234` (đổi ở dòng `const MA_KHOA_CUA_CO = "1234";` đầu vùng dữ liệu trong `index.html`). Nhập đúng thì cuối phần Từ vựng và Mẫu câu hiện khung **Sửa nội dung**, có hai chỗ cần phân biệt:
 
-Đổi mã khoá: mở `index.html`, sửa dòng `const MA_KHOA_CUA_CO = "1234";` ở đầu vùng dữ liệu.
+- **Sửa từng ô** — mỗi từ/câu là một hàng có ô riêng cho tiếng Nhật, romaji, nghĩa tiếng Việt; có nút xoá từng dòng, thêm dòng, thêm/xoá cả chủ đề. Dễ nhìn, không lo gõ sai dấu `|`.
+- **Sửa dạng văn bản** — cho ai quen gõ nhanh, mỗi dòng viết `tiếng Nhật | romaji | nghĩa tiếng Việt`, dòng bắt đầu bằng `#` là tên chủ đề mới. Hai chế độ đồng bộ dữ liệu với nhau, chuyển qua lại được.
+
+Sau khi sửa xong, có ba nút:
+
+1. **Lưu tạm trên máy này** — xem thử ngay trên trình duyệt đang mở, nhưng chỉ máy này thấy, chưa đụng tới file gốc trên GitHub.
+2. **Xuất mã cho GitHub** — hiện ra khối mã đã format sẵn kèm nút **Sao chép**. Chị chép khối này, qua GitHub mở `index.html` (bấm bút chì để sửa), tìm dòng `const VOCAB_DEFAULT = \`` (phần từ vựng) hoặc `const SENT_DEFAULT = \`` (phần mẫu câu), dán đè lên toàn bộ nội dung nằm giữa hai dấu `` ` `` ngay sau dòng đó, rồi bấm **Commit changes**. Khoảng một phút sau, **mọi máy** mở link — kể cả máy của bé — đều thấy nội dung mới.
+3. **Khôi phục nội dung gốc** — quay lại đúng nội dung đang có trong file, bỏ hết chỗ vừa sửa tạm.
+
+Nút **Tải về file .txt** để giữ lại một bản phòng khi cần.
 
 **Cách chính thức (sửa hẳn trong app, mọi máy đều thấy).** Trên GitHub mở `index.html`, bấm biểu tượng bút chì, tìm dòng:
 
